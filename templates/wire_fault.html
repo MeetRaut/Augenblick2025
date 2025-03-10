@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wire Fault Detection</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-blue-700 p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <ul class="flex space-x-6">
+                <li><a href="index.html" class="text-white hover:text-gray-200 transition duration-300">Home</a></li>
+                <li><a href="anomaly_detection.html" class="text-white hover:text-gray-200 transition duration-300">Anomaly Detection</a></li>
+                <li><a href="damage_detection.html" class="text-white hover:text-gray-200 transition duration-300">Damage Detection</a></li>
+                <li><a href="wire_fault.html" class="text-white hover:text-gray-200 transition duration-300">Wire Fault Detection</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg">
+        <h1 class="text-3xl font-semibold text-gray-800 mb-6">⚡ Wire Fault Detection</h1>
+        
+        <form id="wire-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <input type="number" id="voltage" placeholder="Voltage (V)" required class="border p-2 rounded w-full">
+            <input type="number" id="current" placeholder="Current (A)" required class="border p-2 rounded w-full">
+            <input type="number" id="resistance" placeholder="Resistance (Ω)" required class="border p-2 rounded w-full">
+            <button type="submit" class="col-span-1 md:col-span-3 bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700">
+                Check Fault
+            </button>
+        </form>
+
+        <div id="wire-result" class="mt-6 p-4 bg-gray-200 rounded-lg text-lg font-medium hidden"></div>
+        <div id="wire-recommendation" class="mt-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 hidden"></div>
+    </div>
+
+    <script>
+        document.getElementById("wire-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const voltage = document.getElementById("voltage").value;
+            const current = document.getElementById("current").value;
+            const resistance = document.getElementById("resistance").value;
+    
+            const resultDiv = document.getElementById("wire-result");
+            const recommendationDiv = document.getElementById("wire-recommendation");
+    
+            try {
+                // 1️⃣ Fetch fault detection result from backend
+                const response = await fetch("/predict_wire_fault", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ voltage, current, resistance }),
+                });
+    
+                const result = await response.json();
+                const faultStatus = result.status;
+    
+                resultDiv.innerText = `⚠️ ${faultStatus}`;
+                resultDiv.classList.remove("hidden");
+    
+                // 2️⃣ Fetch recommendation from Gemini API
+                const geminiResponse = await fetch("/generate_gemini_recommendation", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ faultStatus }),
+                });
+    
+                const geminiResult = await geminiResponse.json();
+                const recommendation = geminiResult.recommendation;
+    
+                // Display in proper format
+                recommendationDiv.innerHTML = `<b>🔧 Recommended Action:</b><br><pre style="white-space: pre-wrap; word-wrap: break-word;">${recommendation}</pre>`;
+                recommendationDiv.classList.remove("hidden");
+    
+            } catch (error) {
+                console.error("Error:", error);
+                resultDiv.innerText = "⚠️ Error: Unable to fetch fault data.";
+                resultDiv.classList.remove("hidden");
+            }
+        });
+    </script>
+    
+    
+</body>
+</html>

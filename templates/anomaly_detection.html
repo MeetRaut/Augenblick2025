@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anomaly Detection</title>
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js@2.20.0/dist/plotly.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .highlight-anomaly {
+            background-color: #ffdddd;
+            border-left: 4px solid #ff0000;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .chart-container {
+            min-height: 350px;
+            position: relative;
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        .markdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .markdown-table th,
+        .markdown-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .markdown-table th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <nav class="bg-blue-700 p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <ul class="flex space-x-6">
+                <li><a href="index.html" class="text-white hover:text-gray-200 transition duration-300">Home</a></li>
+                <li><a href="anomaly_detection.html" class="text-white hover:text-gray-200 transition duration-300">Anomaly Detection</a></li>
+                <li><a href="damage_detection.html" class="text-white hover:text-gray-200 transition duration-300">Damage Detection</a></li>
+                <li><a href="wire_fault.html" class="text-white hover:text-gray-200 transition duration-300">Wire Fault Detection</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mx-auto page-content max-w-6xl px-4 py-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">Anomaly Detection Dashboard</h1>
+            <p class="text-gray-600">Detect and analyze potential anomalies in your data</p>
+        </header>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Upload Sensor Data</h2>
+            <form id="uploadForm" class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+                <input type="file" id="fileInput" accept=".csv" class="w-full md:w-auto border p-2 rounded">
+                <button type="submit" class="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition duration-300">
+                    Analyze Data
+                </button>
+            </form>
+        </div>
+
+        <div id="loadingIndicator" class="hidden text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-blue-500"></div>
+            <p class="mt-4 text-gray-600">Analyzing data...</p>
+        </div>
+
+        <div id="resultsContainer" class="hidden">
+            <div id="anomalySummary" class="hidden highlight-anomaly mb-6">
+                <h3 class="text-xl font-bold text-red-600 mb-3">Anomaly Detection Summary</h3>
+                <div id="summaryDetails" class="grid grid-cols-2 gap-4 text-gray-700"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div id="timelineChartContainer" class="hidden bg-white shadow-md rounded-lg p-4">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-700">Anomaly Timeline</h3>
+                    <div id="timelineChart" class="chart-container">
+                        <div class="loading-overlay">Loading chart...</div>
+                    </div>
+                </div>
+                <div id="errorDistributionChartContainer" class="hidden bg-white shadow-md rounded-lg p-4">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-700">Error Distribution</h3>
+                    <div id="errorDistributionChart" class="chart-container">
+                        <div class="loading-overlay">Loading chart...</div>
+                    </div>
+                </div>
+                <div id="unitHealthChartContainer" class="hidden bg-white shadow-md rounded-lg p-4">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-700">Anomaly Clusters</h3>
+                    <div id="unitHealthChart" class="chart-container">
+                        <div class="loading-overlay">Loading chart...</div>
+                    </div>
+                </div>
+                <div id="featureImportanceChartContainer" class="hidden bg-white shadow-md rounded-lg p-4">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-700">Feature Importance</h3>
+                    <div id="featureImportanceChart" class="chart-container">
+                        <div class="loading-overlay">Loading chart...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="recommendationsContainer" class="hidden bg-white shadow-md rounded-lg p-6 mt-6">
+                <h3 class="text-2xl font-semibold mb-4 text-gray-800">Anomaly Analysis Recommendations</h3>
+                <div id="maintenanceTable" class="mb-4">
+                    <!-- Anomaly Table will be populated here -->
+                </div>
+                <div id="maintenanceSuggestion" class="text-gray-700 leading-relaxed"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const uploadForm = document.getElementById("uploadForm");
+            if (!uploadForm) return;
+
+            // Elements to manage visibility
+            const resultsContainer = document.getElementById("resultsContainer");
+            const loadingIndicator = document.getElementById("loadingIndicator");
+            const anomalySummary = document.getElementById("anomalySummary");
+            const chartContainers = [
+                'timelineChartContainer', 
+                'errorDistributionChartContainer', 
+                'unitHealthChartContainer', 
+                'featureImportanceChartContainer'
+            ];
+            const recommendationsContainer = document.getElementById("recommendationsContainer");
+
+            // Reset UI to initial state
+            function resetUI() {
+                resultsContainer.classList.add("hidden");
+                loadingIndicator.classList.add("hidden");
+                anomalySummary.classList.add("hidden");
+                chartContainers.forEach(id => {
+                    document.getElementById(id).classList.add("hidden");
+                });
+                recommendationsContainer.classList.add("hidden");
+            }
+
+            uploadForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById("fileInput");
+                const file = fileInput?.files[0];
+
+                if (!file) {
+                    alert("Please select a file");
+                    return;
+                }
+
+                // Reset and prepare UI
+                resetUI();
+                resultsContainer.classList.remove("hidden");
+                loadingIndicator.classList.remove("hidden");
+
+                const formData = new FormData();
+                formData.append("file", file);
+
+                try {
+                    const response = await fetch("/predict", {
+                        method: "POST",
+                        body: formData,
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Analysis failed: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    displayResults(data);
+
+                } catch (error) {
+                    console.error("Error during file upload:", error);
+                    loadingIndicator.innerHTML = `
+                        <p class="text-red-600 font-bold">Analysis Failed</p>
+                        <p class="text-gray-600">${error.message}</p>
+                    `;
+                }
+            });
+
+            function markdownTableToHTML(markdownTable) {
+                const lines = markdownTable.split('\n').filter(line => line.trim() !== '');
+                const headers = lines[0].split('|').filter(h => h.trim() !== '');
+                const rows = lines.slice(2).map(line => 
+                    line.split('|').filter(cell => cell.trim() !== '')
+                );
+
+                let htmlTable = '<table class="markdown-table">';
+                htmlTable += '<thead><tr>' + 
+                    headers.map(h => `<th>${h.trim()}</th>`).join('') + 
+                    '</tr></thead>';
+                
+                htmlTable += '<tbody>';
+                rows.forEach(row => {
+                    htmlTable += '<tr>' + 
+                        row.map(cell => `<td>${cell.trim()}</td>`).join('') + 
+                        '</tr>';
+                });
+                htmlTable += '</tbody></table>';
+
+                return htmlTable;
+            }
+
+            function displayResults(data) {
+                // Hide loading indicator
+                loadingIndicator.classList.add("hidden");
+
+                if (!data || typeof data !== "object") {
+                    console.error("Invalid data received:", data);
+                    return;
+                }
+
+                // Show Anomaly Summary
+                if (data.summary) {
+                    const summaryHtml = `
+                        <div><strong>Total Sequences:</strong> ${data.summary?.total_sequences || "N/A"}</div>
+                        <div><strong>Anomalies Detected:</strong> 
+                            <span class="text-red-600">${data.summary?.anomalies_detected || 0}</span>
+                        </div>
+                        <div><strong>Anomaly Percentage:</strong> 
+                            <span class="text-red-600">${data.summary?.anomaly_percentage?.toFixed(2) || "N/A"}%</span>
+                        </div>
+                        <div><strong>Detection Threshold:</strong> ${data.summary?.threshold?.toFixed(4) || "N/A"}</div>
+                    `;
+                    document.getElementById("summaryDetails").innerHTML = summaryHtml;
+                    anomalySummary.classList.remove("hidden");
+                }
+
+                // Visualizations
+                const chartData = [
+                    { containerId: 'timelineChartContainer', chartId: 'timelineChart', key: 'timeline' },
+                    { containerId: 'errorDistributionChartContainer', chartId: 'errorDistributionChart', key: 'error_distribution' },
+                    { containerId: 'unitHealthChartContainer', chartId: 'unitHealthChart', key: 'unit_health' },
+                    { containerId: 'featureImportanceChartContainer', chartId: 'featureImportanceChart', key: 'feature_importance' }
+                ];
+
+                chartData.forEach(({ containerId, chartId, key }) => {
+                    const container = document.getElementById(containerId);
+                    const chartContainer = document.getElementById(chartId);
+                    
+                    try {
+                        const chartDataRaw = JSON.parse(data.visualizations?.[key] || "{}");
+                        if (chartDataRaw.data && chartDataRaw.layout) {
+                            // Remove loading overlay
+                            const loadingOverlay = chartContainer.querySelector(".loading-overlay");
+                            if (loadingOverlay) loadingOverlay.remove();
+
+                            // Show container and render chart
+                            container.classList.remove("hidden");
+                            Plotly.react(chartId, chartDataRaw.data, chartDataRaw.layout);
+                        }
+                    } catch (error) {
+                        console.error(`Error rendering ${key} chart:`, error);
+                    }
+                });
+
+                // Recommendations
+                if (data.maintenance_recommendations) {
+                    const maintenanceTableElement = document.getElementById('maintenanceTable');
+                    const maintenanceSuggestionElement = document.getElementById('maintenanceSuggestion');
+
+                    // Render maintenance table
+                    if (data.maintenance_recommendations.maintenance_table) {
+                        maintenanceTableElement.innerHTML = markdownTableToHTML(
+                            data.maintenance_recommendations.maintenance_table
+                        );
+                    }
+
+                    // Render maintenance suggestion
+                    if (data.maintenance_recommendations.maintenance_recommendation) {
+                        maintenanceSuggestionElement.textContent = 
+                            data.maintenance_recommendations.maintenance_recommendation;
+                    }
+
+                    // Show recommendations container
+                    recommendationsContainer.classList.remove("hidden");
+                }
+            }
+        });
+    </script>
+</body>
+</html>

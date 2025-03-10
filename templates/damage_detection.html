@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Damage Detection</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="bg-blue-700 p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <ul class="flex space-x-6">
+                <li><a href="index.html" class="text-white hover:text-gray-200 transition duration-300">Home</a></li>
+                <li><a href="anomaly_detection.html" class="text-white hover:text-gray-200 transition duration-300">Anomaly Detection</a></li>
+                <li><a href="damage_detection.html" class="text-white hover:text-gray-200 transition duration-300">Damage Detection</a></li>
+                <li><a href="wire_fault.html" class="text-white hover:text-gray-200 transition duration-300">Wire Fault Detection</a></li>
+            </ul>
+        </div>
+    </nav>
+
+
+    <div class="container mx-auto page-content">
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <h1 class="text-3xl font-semibold text-gray-800 mb-4">🛠 Damage Detection</h1>
+            <form id="damage-form" class="flex flex-col items-center">
+                <input type="file" id="image-file" accept="image/*" required class="border p-2 rounded w-full md:w-auto">
+                <button type="submit" class="btn mt-4">Detect Damage</button>
+            </form>
+            <div class="image-container mt-6">
+                <div class="image-box">
+                    <h3 class="text-gray-700">Original Image</h3>
+                    <img id="original-img" src="" alt="Original Image">
+                </div>
+                <div class="image-box">
+                    <h3 class="text-gray-700">Marked Image</h3>
+                    <img id="marked-img" src="" alt="Marked Image">
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.getElementById("damage-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const file = document.getElementById("image-file").files[0];
+            const formData = new FormData();
+            formData.append("file", file);
+            const response = await fetch("/detect_damage", { method: "POST", body: formData });
+            const result = await response.json();
+            document.getElementById("original-img").src = result.original_image;
+            document.getElementById("marked-img").src = result.marked_image;
+        });
+    </script>
+</body>
+</html>

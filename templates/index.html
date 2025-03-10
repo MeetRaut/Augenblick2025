@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Industrial Equipment Health Monitoring</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-blue-700 p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-white text-2xl font-bold">Health Monitoring System</h1>
+            <ul class="flex space-x-6">
+                <li><a href="index.html" class="text-white hover:text-gray-200 transition duration-300">Home</a></li>
+                <li><a href="anomaly_detection.html" class="text-white hover:text-gray-200 transition duration-300">Anomaly Detection</a></li>
+                <li><a href="damage_detection.html" class="text-white hover:text-gray-200 transition duration-300">Damage Detection</a></li>
+                <li><a href="wire_fault.html" class="text-white hover:text-gray-200 transition duration-300">Wire Fault Detection</a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <header class="bg-gradient-to-r from-blue-500 to-indigo-600 py-16 text-center text-white">
+        <h2 class="text-5xl font-extrabold">Industrial Equipment’s Health Monitoring System</h2>
+        <p class="text-lg mt-4 max-w-3xl mx-auto">A machine learning-powered solution for predictive maintenance, anomaly detection, and fault identification in industrial equipment.</p>
+    </header>
+    
+    <section class="container mx-auto py-16 px-6">
+        <div class="grid md:grid-cols-3 gap-10">
+            <div class="bg-white shadow-lg rounded-lg p-8 text-center transform hover:scale-105 transition duration-300">
+                <h3 class="text-2xl font-semibold text-gray-800 mb-3">Anomaly Detection</h3>
+                <p class="text-gray-600">LSTM Autoencoder detects abnormal sensor readings in time-series data.</p>
+            </div>
+            <div class="bg-white shadow-lg rounded-lg p-8 text-center transform hover:scale-105 transition duration-300">
+                <h3 class="text-2xl font-semibold text-gray-800 mb-3">Damage Detection</h3>
+                <p class="text-gray-600">YOLO-based model identifies dents and cracks in industrial equipment images.</p>
+            </div>
+            <div class="bg-white shadow-lg rounded-lg p-8 text-center transform hover:scale-105 transition duration-300">
+                <h3 class="text-2xl font-semibold text-gray-800 mb-3">Wire Fault Detection</h3>
+                <p class="text-gray-600">Predicts wire faults using voltage, current, and resistance values.</p>
+            </div>
+        </div>
+    </section>
+</body>
+</html>
